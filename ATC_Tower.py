@@ -2,14 +2,14 @@
 # Air Traffic Control System — Streamlit version with:
 # ✅ Pre-stored Pakistani logs (Domestic + International flights)
 # ✅ Auto-save after every operation
-# ✅ Blue theme + single airplane background
+# ✅ Blue theme + single airplane background (no slideshow; no duplicate element errors)
+# ✅ Full CRUD: airports, flights, weather, runways, pilot requests
 # ✅ Separate viewing options for Domestic vs International flights
 
 import streamlit as st
 
 # ===================== PAGE CONFIG =====================
 st.set_page_config(page_title="Air Traffic Control System", page_icon="🛫", layout="wide")
-
 MAX_QUEUE = 50
 
 # ===================== DESIGN FUNCTIONS =====================
@@ -23,9 +23,11 @@ def set_background(image_url):
             background-repeat: no-repeat;
             background-attachment: fixed;
         }}
-        /* Slight panel translucency for readability */
-        .stSidebar, .stMarkdown, .stTable, .stDataFrame, .stSelectbox, .stRadio, .stForm, .stTextInput, .stButton {{
-            background-color: rgba(0, 0, 0, 0.0);
+        /* Improve readability on background */
+        .block-container {{
+            background: rgba(0, 20, 40, 0.35);
+            border-radius: 12px;
+            padding: 1.2rem;
         }}
         </style>
         """,
@@ -36,28 +38,15 @@ def set_blue_theme():
     st.markdown(
         """
         <style>
-        .stApp {
-            color: #e6f0ff;
-            background-color: #001f3f;
-        }
-        h1, h2, h3, h4 {
-            color: #66b2ff;
-        }
-        .stButton>button {
-            background-color: #004080;
-            color: white;
-            border-radius: 8px;
-            border: 1px solid #66b2ff;
-        }
-        .stSelectbox, .stRadio label, .stTextInput>div>div>input {
-            color: #e6f0ff !important;
-        }
+        .stApp { color: #e6f0ff; background-color: #001f3f; }
+        h1, h2, h3, h4 { color: #66b2ff; }
+        .stButton>button { background-color: #004080; color: white; border-radius: 8px; border: 1px solid #66b2ff; }
+        .stSelectbox, .stRadio label, .stTextInput>div>div>input { color: #e6f0ff !important; }
         </style>
         """,
         unsafe_allow_html=True
     )
 
-# ===================== FILE SAVE =====================
 def save_files():
     with open("airports.txt", "w", encoding="utf-8") as af:
         for a in st.session_state.airports:
@@ -77,61 +66,43 @@ def save_files():
 def auto_save():
     save_files()
 
-# ===================== VALIDATION & HELPERS =====================
 def validate_airport_code(code: str) -> bool:
     return len(code) == 3 and all(c.isupper() for c in code)
 
 def validate_flight_number(fn: str) -> bool:
-    if len(fn) < 4 or len(fn) > 6:
-        return False
-    if not (fn[0].isupper() and fn[1].isupper() and fn[2] == '-'):
-        return False
+    if len(fn) < 4 or len(fn) > 6: return False
+    if not (fn[0].isupper() and fn[1].isupper() and fn[2] == '-'): return False
     return all(c.isdigit() for c in fn[3:])
 
 def find_airport(code: str):
     for a in st.session_state.airports:
-        if a["code"] == code:
-            return a
+        if a["code"] == code: return a
     return None
 
 def find_flight(number: str):
     for f in st.session_state.flights:
-        if f["number"] == number:
-            return f
+        if f["number"] == number: return f
     return None
 
-def delete_airport_and_associated_flights(code: str):
-    st.session_state.flights = [
-        f for f in st.session_state.flights
-        if f["source"] != code and f["destination"] != code
-    ]
-    st.session_state.airports = [
-        a for a in st.session_state.airports
-        if a["code"] != code
-    ]
-    auto_save()
-
-# ===================== PRE-STORED LOGS =====================
 if "airports" not in st.session_state:
     st.session_state.airports = [
-        {"code": "KHI", "status": "Open", "weather": "Clear", "runwayAvailable": True},  # Karachi
-        {"code": "LHE", "status": "Open", "weather": "Rain", "runwayAvailable": True},   # Lahore
-        {"code": "ISB", "status": "Open", "weather": "Fog", "runwayAvailable": False},   # Islamabad
-        {"code": "PEW", "status": "Open", "weather": "Clear", "runwayAvailable": True},  # Peshawar
-        {"code": "SKT", "status": "Open", "weather": "Clear", "runwayAvailable": True},  # Sialkot
+        {"code": "KHI", "status": "Open", "weather": "Clear", "runwayAvailable": True},
+        {"code": "LHE", "status": "Open", "weather": "Rain", "runwayAvailable": True},
+        {"code": "ISB", "status": "Open", "weather": "Fog", "runwayAvailable": False},
+        {"code": "PEW", "status": "Open", "weather": "Clear", "runwayAvailable": True},
+        {"code": "SKT", "status": "Open", "weather": "Clear", "runwayAvailable": True},
     ]
 
 if "flights" not in st.session_state:
     st.session_state.flights = [
-        # --- Domestic flights (6) ---
+        # Domestic (6)
         {"number": "PK-301", "source": "KHI", "destination": "LHE", "type": "Departure", "category": "Domestic", "emergency": False},
         {"number": "PK-302", "source": "LHE", "destination": "ISB", "type": "Arrival",  "category": "Domestic", "emergency": False},
         {"number": "PK-303", "source": "ISB", "destination": "PEW", "type": "Departure", "category": "Domestic", "emergency": False},
         {"number": "PK-304", "source": "SKT", "destination": "KHI", "type": "Arrival",   "category": "Domestic", "emergency": False},
         {"number": "PK-305", "source": "PEW", "destination": "LHE", "type": "Departure", "category": "Domestic", "emergency": False},
         {"number": "PK-306", "source": "KHI", "destination": "SKT", "type": "Arrival",   "category": "Domestic", "emergency": False},
-
-        # --- International flights (7) ---
+        # International (7)
         {"number": "PK-401", "source": "KHI", "destination": "DXB", "type": "Departure", "category": "International", "emergency": False},
         {"number": "PK-402", "source": "LHE", "destination": "LHR", "type": "Departure", "category": "International", "emergency": False},
         {"number": "PK-403", "source": "ISB", "destination": "JED", "type": "Departure", "category": "International", "emergency": False},
@@ -147,14 +118,11 @@ if "requests" not in st.session_state:
         {"flightNumber": "PK-302", "type": "Landing", "emergency": True},
     ]
 
-auto_save()  # Save immediately on startup
+auto_save()
 
-# ===================== DESIGN INIT =====================
 set_blue_theme()
-# Single static background image (replace URL if you like)
 set_background("https://images.pexels.com/photos/358319/pexels-photo-358319.jpeg?cs=srgb&dl=pexels-pixabay-358319.jpg&fm=jpg")
 
-# ===================== UI =====================
 st.title("🛫 Air Traffic Control Tower")
 
 menu = st.sidebar.radio(
@@ -169,11 +137,10 @@ menu = st.sidebar.radio(
     index=0
 )
 
-# ===================== AIRPORT & FLIGHT =====================
 if menu == "Airport & Flight Management":
     col_left, col_right = st.columns(2)
 
-    # --- Airports ---
+    # Airports
     with col_left:
         st.subheader("Add Airport")
         with st.form("add_airport", clear_on_submit=True):
@@ -182,6 +149,8 @@ if menu == "Airport & Flight Management":
             if submitted:
                 if not validate_airport_code(code):
                     st.error("Invalid code! Use 3 uppercase letters (e.g., KHI).")
+                elif find_airport(code) is not None:
+                    st.error("Airport already exists.")
                 else:
                     st.session_state.airports.insert(0, {
                         "code": code, "status": "Open", "weather": "Clear", "runwayAvailable": True
@@ -208,22 +177,50 @@ if menu == "Airport & Flight Management":
                 if a is None:
                     st.error("Airport not found!")
                 else:
-                    delete_airport_and_associated_flights(del_code)
+                    # Remove associated flights
+                    st.session_state.flights = [
+                        f for f in st.session_state.flights
+                        if f["source"] != del_code and f["destination"] != del_code
+                    ]
+                    # Remove airport
+                    st.session_state.airports = [
+                        x for x in st.session_state.airports if x["code"] != del_code
+                    ]
+                    auto_save()
                     st.success("Airport and associated flights deleted!")
 
-    # --- Flights ---
+        st.subheader("Toggle Airport Status / Release Runway")
+        codes = [a["code"] for a in st.session_state.airports]
+        if len(codes):
+            sel_code = st.selectbox("Select Airport", options=codes, key="airport_manage_select")
+            a = find_airport(sel_code)
+            colA, colB = st.columns(2)
+            with colA:
+                if st.button(f'Toggle Status (Currently: {a["status"]})'):
+                    a["status"] = "Closed" if a["status"] == "Open" else "Open"
+                    auto_save()
+                    st.success(f'Status set to {a["status"]}')
+            with colB:
+                if st.button("Release Runway"):
+                    a["runwayAvailable"] = True
+                    auto_save()
+                    st.success("Runway released (Available)")
+
+    # Flights
     with col_right:
         st.subheader("Add Flight")
         with st.form("add_flight", clear_on_submit=True):
             fn   = st.text_input("Flight Number (PK-123)").strip()
             src  = st.text_input("Source Airport").strip()
             dest = st.text_input("Destination Airport").strip()
-            type_ = st.text_input("Type (Arrival/Departure)").strip()
+            type_ = st.selectbox("Type", ["Arrival", "Departure"])
             cat   = st.selectbox("Category", ["Domestic", "International"])
             f_submit = st.form_submit_button("Add Flight")
             if f_submit:
                 if not validate_flight_number(fn):
                     st.error("Invalid flight number! Format: XX-123 (uppercase + dash + digits).")
+                elif find_flight(fn) is not None:
+                    st.error("Flight already exists.")
                 else:
                     st.session_state.flights.insert(0, {
                         "number": fn, "source": src, "destination": dest,
@@ -269,7 +266,6 @@ if menu == "Airport & Flight Management":
                     auto_save()
                     st.success("Flight deleted!")
 
-# ===================== RUNWAY =====================
 elif menu == "Runway & ATC":
     st.subheader("Runway Status")
     st.table([
@@ -294,12 +290,11 @@ elif menu == "Runway & ATC":
                 auto_save()
                 st.success("Runway assigned!")
 
-# ===================== PILOT REQUESTS =====================
 elif menu == "Pilot Requests":
     st.subheader("Submit Request")
     with st.form("submit_request", clear_on_submit=True):
         pr_fn = st.text_input("Flight Number").strip()
-        pr_type = st.text_input("Type (Landing/Takeoff)").strip()
+        pr_type = st.selectbox("Type", ["Landing", "Takeoff"])
         pr_emergency = st.checkbox("Emergency?")
         pr_submit = st.form_submit_button("Submit Request")
         if pr_submit:
@@ -322,11 +317,8 @@ elif menu == "Pilot Requests":
         st.info("No pending requests!")
     else:
         st.table([
-            {
-                "Flight": pr["flightNumber"],
-                "Type": pr["type"],
-                "Emergency": "Yes" if pr["emergency"] else "No"
-            } for pr in st.session_state.requests
+            {"Flight": pr["flightNumber"], "Type": pr["type"], "Emergency": "Yes" if pr["emergency"] else "No"}
+            for pr in st.session_state.requests
         ])
 
     st.subheader("Process Requests")
@@ -340,11 +332,10 @@ elif menu == "Pilot Requests":
                     st.error(msg + "Yes")
                 else:
                     st.success(msg + "No")
-            st.session_state.requests = []  # clear queue
+            st.session_state.requests = []
             auto_save()
             st.info("All requests processed and queue cleared.")
 
-# ===================== WEATHER & STATUS =====================
 elif menu == "Weather & Airport Status":
     st.subheader("Update Weather")
     if len(st.session_state.airports) == 0:
@@ -362,7 +353,6 @@ elif menu == "Weather & Airport Status":
                 auto_save()
                 st.success("Weather updated!")
 
-# ===================== AIRPORT STATUS BOARD =====================
 elif menu == "Airport Status Board":
     st.subheader("Airport Status Board")
     if len(st.session_state.airports) == 0:
