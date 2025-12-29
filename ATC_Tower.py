@@ -8,6 +8,147 @@ st.set_page_config(page_title="Air Traffic Control System", page_icon="🛫", la
 
 MAX_QUEUE = 50
 
+# ===================== DESIGN FUNCTIONS =====================
+# --- CHANGE BACKGROUND IMAGE ---
+def set_background(image_url):
+    st.markdown(
+        f"""
+        <style>
+        .stApp {{
+            background-image: url("{image_url}");
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+# --- BLUE THEME STYLING ---
+def set_blue_theme():
+    st.markdown(
+        """
+        <style>
+        .stApp {
+            color: #e6f0ff;
+            background-color: #001f3f;
+        }
+        h1, h2, h3, h4 {
+            color: #66b2ff;
+        }
+        .stButton>button {
+            background-color: #004080;
+            color: white;
+            border-radius: 8px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+# ===================== FILE SAVE =====================
+def save_files():
+    with open("airports.txt", "w", encoding="utf-8") as af:
+        for a in st.session_state.airports:
+            af.write(f'{a["code"]} {a["status"]} {a["weather"]} {int(a["runwayAvailable"])}\n')
+
+    with open("flights.txt", "w", encoding="utf-8") as ff:
+        for f in st.session_state.flights:
+            ff.write(f'{f["number"]} {f["source"]} {f["destination"]} '
+                     f'{f["type"]} {f["category"]} {int(f["emergency"])}\n')
+
+    with open("requests.txt", "w", encoding="utf-8") as rf:
+        for pr in st.session_state.requests:
+            rf.write(f'{pr["flightNumber"]} {pr["type"]} {int(pr["emergency"])}\n')
+
+def auto_save():
+    save_files()
+
+# ===================== VALIDATION =====================
+def validate_airport_code(code: str) -> bool:
+    return len(code) == 3 and all(c.isupper() for c in code)
+
+def validate_flight_number(fn: str) -> bool:
+    if len(fn) < 4 or len(fn) > 6: return False
+    if not (fn[0].isupper() and fn[1].isupper() and fn[2] == '-'): return False
+    return all(c.isdigit() for c in fn[3:])
+
+def find_airport(code: str):
+    for a in st.session_state.airports:
+        if a["code"] == code: return a
+    return None
+
+def find_flight(number: str):
+    for f in st.session_state.flights:
+        if f["number"] == number: return f
+    return None
+
+def delete_airport_and_associated_flights(code: str):
+    st.session_state.flights = [f for f in st.session_state.flights if f["source"] != code and f["destination"] != code]
+    st.session_state.airports = [a for a in st.session_state.airports if a["code"] != code]
+    auto_save()
+
+# ===================== PRE-STORED LOGS =====================
+if "airports" not in st.session_state:
+    st.session_state.airports = [
+        {"code": "KHI", "status": "Open", "weather": "Clear", "runwayAvailable": True},
+        {"code": "LHE", "status": "Open", "weather": "Rain", "runwayAvailable": True},
+        {"code": "ISB", "status": "Open", "weather": "Fog", "runwayAvailable": False},
+        {"code": "PEW", "status": "Open", "weather": "Clear", "runwayAvailable": True},
+    ]
+
+if "flights" not in st.session_state:
+    st.session_state.flights = [
+        {"number": "PK-301", "source": "KHI", "destination": "LHE", "type": "Departure", "category": "Domestic", "emergency": False},
+        {"number": "PK-302", "source": "LHE", "destination": "ISB", "type": "Arrival", "category": "Domestic", "emergency": False},
+        {"number": "PK-401", "source": "KHI", "destination": "DXB", "type": "Departure", "category": "International", "emergency": False},
+        {"number": "PK-501", "source": "ISB", "destination": "JED", "type": "Departure", "category": "International", "emergency": False},
+    ]
+
+if "requests" not in st.session_state:
+    st.session_state.requests = [
+        {"flightNumber": "PK-301", "type": "Takeoff", "emergency": False},
+        {"flightNumber": "PK-302", "type": "Landing", "emergency": True},
+    ]
+
+auto_save()  # Save immediately on startup
+
+# ===================== DESIGN INIT =====================
+set_blue_theme()
+
+# --- SLIDESHOW BACKGROUND ---
+# 👉 Replace these URLs with airplane images you like
+images = [
+    "https://images.unsplash.com/photo-1504196606672-aef5c9cefc92",  # airplane 1
+    "https://images.unsplash.com/photo-1529070538774-1843cb3265df",  # airplane 2
+    "https://images.unsplash.com/photo-1508610048659-a06b669e9f7f",  # airplane 3
+]
+
+if "bg_index" not in st.session_state:
+    st.session_state.bg_index = 0
+
+set_background(images[st.session_state.bg_index])
+st.session_state.bg_index = (st.session_state.bg_index + 1) % len(images)
+
+# ===================== UI =====================
+st.title("🛫 Air Traffic Control System (Pakistan)")
+
+menu = st.sidebar.radio(
+    "Main Menu",
+    [
+        "Airport & Flight Management",
+        "Runway & ATC",
+        "Pilot Requests",
+        "Weather & Airport Status",
+        "Airport Status Board",
+    ],
+    index=0
+)
+
+
+MAX_QUEUE = 50
+
 # ===================== FILE SAVE =====================
 def save_files():
     # Save airports
