@@ -176,7 +176,7 @@ if menu == "Airport & Flight Management":
                     auto_save()
                     st.success("Airport added!")
 
-                st.subheader("View Airports")
+        st.subheader("View Airports")
         st.table([
             {
                 "Code": a["code"],
