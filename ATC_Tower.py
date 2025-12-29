@@ -221,7 +221,7 @@ if "requests" not in st.session_state:
 auto_save()
 
 # ===================== UI =====================
-st.title("🛫 Air Traffic Control System (Pakistan)")
+st.title("🛫 Air Traffic Control Tower")
 
 menu = st.sidebar.radio(
     "Main Menu",
