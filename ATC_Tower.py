@@ -50,6 +50,7 @@ def set_blue_theme():
     )
 
 # ===================== FILE SAVE =====================
+
 def save_files():
     with open("airports.txt", "w", encoding="utf-8") as af:
         for a in st.session_state.airports:
